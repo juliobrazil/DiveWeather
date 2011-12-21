@@ -23,6 +23,8 @@
         //
         function onSuccess(position) {
             var element = document.getElementById('geolocation');
+            var url = "http://maps.google.com/maps/api/staticmap?center=" + position.coords.latitude + "," + position.coords.longitude + "&zoom=13&size=320x480&maptype=roadmap&key=zaSyAvc3-RAsDMqSxgh0os_6S4DsuJdSSdGwo&sensor=true";
+            document.getElementById('map').setAttribute('src', url);
             element.innerHTML = 'Latitude: ' + position.coords.latitude + '<br />' +
                     'Longitude: ' + position.coords.longitude + '<br />' +
                     'Altitude: ' + position.coords.altitude + '<br />' +
@@ -31,22 +33,8 @@
                     'Heading: ' + position.coords.heading + '<br />' +
                     'Speed: ' + position.coords.speed + '<br />' +
                     'Timestamp: ' + new Date(position.timestamp) + '<br />';
-            run();
-        }
-
-        function run() {
-            var win = function (position) {
-                // Grab coordinates object from the Position object passed into success callback.
-                var coords = position.coords;
-                // Call for static google maps data - make sure you use your own Google Maps API key!
-                var url = "http://maps.google.com/maps/api/staticmap?center=" + coords.latitude + "," + coords.longitude + "&zoom=13&size=320x480&maptype=roadmap&key=zaSyAvc3-RAsDMqSxgh0os_6S4DsuJdSSdGwo&sensor=true";
-                document.getElementById('map').setAttribute('src', url);
-            };
-            var fail = function (e) {
-                alert('Can\'t retrieve position.\nError: ' + e);
-            };
-            navigator.geolocation.getCurrentPosition(win, fail);
-        }
+            
+        }       
 
         // onError Callback receives a PositionError object
         //
