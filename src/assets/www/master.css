@@ -1,4 +1,6 @@
-body, img { margin: 0; padding:0; border: 0; background-color:#b0c4de;}
-#map { width: 100%; height: 100%; z-index:1; }
+﻿#diveLogo 
+{
+   vertical-align:middle;
+}
 
-
+.ui-page { background: gray;}
