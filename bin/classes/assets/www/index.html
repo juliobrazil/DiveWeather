@@ -126,8 +126,6 @@
 						markup = "<h4>" + $(stationItem).find('title').text() + "</h4>";
 						markup += "<p>" + $(stationItem).find('description').text() + "</p>";					
 						
-						console.log($(pageSelector));
-						
 						// Find the h1 element in our header and inject the name of
 						// the category into it.
 						$header.find( "h2" ).html( $(stationItem).find('title').text() );
@@ -168,7 +166,7 @@
 					
 					var u = $.mobile.path.parseUrl( data.toPage ),
 						re = /^#stations-item/;
-						console.log( u.hash);
+						
 					if ( u.hash.search(re) !== -1 ) {
 						// We're being asked to display the items for a specific station.
 						// Call our internal method that builds the content for the station
@@ -184,24 +182,11 @@
 			
 			    
 			$( '#stations-items' ).live( 'pageinit',function(event){
-				   $('#stations-items').live('swipeleft swiperight',function(event){
-				        console.log(event.type);
+				   $('#stations-items').live('swipeleft swiperight',function(event){				   
 				        if (event.type == "swipeleft") {
-				            var prev = $("#prevlink",$.mobile.activePage);
-				            if (prev.length) {
-				                var prevurl = $(prev).attr("href");
-				                console.log(prevurl);
-				                $.mobile.changePage(prevurl);
-				            }
+				        	history.back();           
 				        }
-				        if (event.type == "swiperight") {
-				            var next = $("#nextlink",$.mobile.activePage);
-				            if (next.length) {
-				                var nexturl = $(next).attr("href");
-				                console.log(nexturl);
-				                $.mobile.changePage(nexturl);
-				            }
-				        }
+				        
 				        event.preventDefault();
 				    });			  
 			});
@@ -229,7 +214,10 @@
 					<button type="button" data-theme="b" id="search_bt" name="search_bt" >Submit</button>
 				</fieldset>
 			</form>		
-			<br />		
+			<br />	
+			<div id="mainBox1" data-role="content" class="ui-content" role="main">		
+				<ul id="result" class="stationsList ui-listview" data-role="listview"><li data-theme="c" class="ui-btn ui-btn-icon-right ui-li-has-arrow ui-li ui-btn-up-c"><div class="ui-btn-inner ui-li" aria-hidden="true"><div class="ui-btn-text"><a href="#stations-items?station=0" class="ui-link-inherit">Station WASD2 - 8594900 - WASHINGTON, DC</a></div><span class="ui-icon ui-icon-arrow-r ui-icon-shadow"></span></div></li></ul>
+			</div>	
 			<div id="mainBox" data-role="content">		
 				<ul  id="result" class="stationsList" data-role="listview"></ul>
 			</div>
