@@ -4,3 +4,10 @@
 }
 
 .ui-page { background: gray;}
+
+form, #mainBox, #stations-items ui-content {	
+	margin-left: auto;
+	margin-right: auto;
+	width: 95%;
+}
+
