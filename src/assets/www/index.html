@@ -63,7 +63,7 @@
 	                      cache: false,
 	                      dataType: "xml",
 	                      success: onBuoySuccess
-	                    });	                            
+	                    });	                           
 	            }
 	            
 	            function onBuoySuccess(data)
@@ -86,123 +86,126 @@
 	            	function() { return false;}
 	            );
 	 
-	        });
+	      
 	        
 	        
-	        
-	        // Load the data for a specific stations, based on
-			// the URL passed in. Generate markup for the items in the
-			// station, inject it into an embedded page, and then make
-			// that page the current active page.
-		function showStation( urlObj, options )
-		{
-			var stationId = urlObj.hash.replace( /.*station=/, "" ),
-			
-				// Get the object that represents the category we
-				// are interested in. Note, that at this point we could
-				// instead fire off an ajax request to fetch the data, but
-				// for the purposes of this sample, it's already in memory.
+		        
+		        // Load the data for a specific stations, based on
+				// the URL passed in. Generate markup for the items in the
+				// station, inject it into an embedded page, and then make
+				// that page the current active page.
+			function showStation( urlObj, options )
+			{
+				var stationId = urlObj.hash.replace( /.*station=/, "" ),
 				
-				stationItem = $(__stationsCache).find('item')[stationId];
-
-				// The pages we use to display our content are already in
-				// the DOM. The id of the page we are going to write our
-				// content into is specified in the hash before the '?'.
-				pageSelector = urlObj.hash.replace( /\?.*$/, "" );
-			
-			if ( stationItem ) {
-				// Get the page we are going to dump our content into.
-				var $page = $( pageSelector ),
-
-					// Get the header for the page.
-					$header = $page.children( ":jqmData(role=header)" ),
-
-					// Get the content area element for the page.
-					$content = $page.children( ":jqmData(role=content)" ),
-
-					// The markup we are going to inject into the content
-					// area of the page.
-					markup = "<h4>" + $(stationItem).find('title').text() + "</h4>";
-					markup += "<p>" + $(stationItem).find('description').text() + "</p>";					
+					// Get the object that represents the category we
+					// are interested in. Note, that at this point we could
+					// instead fire off an ajax request to fetch the data, but
+					// for the purposes of this sample, it's already in memory.
 					
-					
-					// Find the h1 element in our header and inject the name of
-					// the category into it.
-					$header.find( "h2" ).html( $(stationItem).find('title').text() );
-
-					// Inject the category items markup into the content element.
-					$content.html( markup );
-
-					// Pages are lazily enhanced. We call page() on the page
-					// element to make sure it is always enhanced before we
-					// attempt to enhance the listview markup we just injected.
-					// Subsequent calls to page() are ignored since a page/widget
-					// can only be enhanced once.
-					$page.page();
-
-
-					// We don't want the data-url of the page we just modified
-					// to be the url that shows up in the browser's location field,
-					// so set the dataUrl option to the URL for the category
-					// we just loaded.
-					options.dataUrl = urlObj.href;
-
-					// Now call changePage() and tell it to switch to
-					// the page we just modified.
-					$.mobile.changePage( $page, options );
-			}
-		}
-
- 
-		// Listen for any attempts to call changePage().
-		$(document).bind( "pagebeforechange", function( e, data ) {			
-			// We only want to handle changePage() calls where the caller is
-			// asking us to load a page by URL.
-			
-			if ( typeof data.toPage === "string" ) {
-				// We are being asked to load a page by URL, but we only
-				// want to handle URLs that request the data for a specific
-				// station.
+					stationItem = $(__stationsCache).find('item')[stationId];
+	
+					// The pages we use to display our content are already in
+					// the DOM. The id of the page we are going to write our
+					// content into is specified in the hash before the '?'.
+					pageSelector = urlObj.hash.replace( /\?.*$/, "" );
 				
-				var u = $.mobile.path.parseUrl( data.toPage ),
-					re = /^#stations-item/;
-					console.log( u.hash);
-				if ( u.hash.search(re) !== -1 ) {
-					// We're being asked to display the items for a specific station.
-					// Call our internal method that builds the content for the station
-					// on the fly based on our stationCache data structure.
-					showStation( u, data.options );
-
-					// Make sure to tell changePage() we've handled this call so it doesn't
-					// have to do anything.
-					e.preventDefault();
+				if ( stationItem ) {
+					// Get the page we are going to dump our content into.
+					var $page = $( pageSelector ),
+	
+						// Get the header for the page.
+						$header = $page.children( ":jqmData(role=header)" ),
+	
+						// Get the content area element for the page.
+						$content = $page.children( ":jqmData(role=content)" ),
+	
+						// The markup we are going to inject into the content
+						// area of the page.
+						markup = "<h4>" + $(stationItem).find('title').text() + "</h4>";
+						markup += "<p>" + $(stationItem).find('description').text() + "</p>";					
+						
+						console.log($(pageSelector));
+						
+						// Find the h1 element in our header and inject the name of
+						// the category into it.
+						$header.find( "h2" ).html( $(stationItem).find('title').text() );
+	
+						// Inject the category items markup into the content element.
+						$content.html( markup );
+	
+						// Pages are lazily enhanced. We call page() on the page
+						// element to make sure it is always enhanced before we
+						// attempt to enhance the listview markup we just injected.
+						// Subsequent calls to page() are ignored since a page/widget
+						// can only be enhanced once.
+						$page.page();
+	
+	
+						// We don't want the data-url of the page we just modified
+						// to be the url that shows up in the browser's location field,
+						// so set the dataUrl option to the URL for the category
+						// we just loaded.
+						options.dataUrl = urlObj.href;
+	
+						// Now call changePage() and tell it to switch to
+						// the page we just modified.
+						$.mobile.changePage( $page, options );
 				}
 			}
-		});
 	
-		$(document).ready(function() {
-		
-		    $('.stations-items').live('swipeleft swiperight',function(event){
-		        console.log(event.type);
-		        if (event.type == "swipeleft") {
-		            var prev = $("#prevlink",$.mobile.activePage);
-		            if (prev.length) {
-		                var prevurl = $(prev).attr("href");
-		                console.log(prevurl);
-		                $.mobile.changePage(prevurl);
-		            }
-		        }
-		        if (event.type == "swiperight") {
-		            var next = $("#nextlink",$.mobile.activePage);
-		            if (next.length) {
-		                var nexturl = $(next).attr("href");
-		                console.log(nexturl);
-		                $.mobile.changePage(nexturl);
-		            }
-		        }
-		        event.preventDefault();
-		    });
-		});
+	 
+			// Listen for any attempts to call changePage().
+			$(document).bind( "pagebeforechange", function( e, data ) {			
+				// We only want to handle changePage() calls where the caller is
+				// asking us to load a page by URL.
+				
+				if ( typeof data.toPage === "string" ) {
+					// We are being asked to load a page by URL, but we only
+					// want to handle URLs that request the data for a specific
+					// station.
+					
+					var u = $.mobile.path.parseUrl( data.toPage ),
+						re = /^#stations-item/;
+						console.log( u.hash);
+					if ( u.hash.search(re) !== -1 ) {
+						// We're being asked to display the items for a specific station.
+						// Call our internal method that builds the content for the station
+						// on the fly based on our stationCache data structure.
+						showStation( u, data.options );
+	
+						// Make sure to tell changePage() we've handled this call so it doesn't
+						// have to do anything.
+						e.preventDefault();
+					}
+				}
+			});			
+			
+			    
+			$( '#stations-items' ).live( 'pageinit',function(event){
+				   $('#stations-items').live('swipeleft swiperight',function(event){
+				        console.log(event.type);
+				        if (event.type == "swipeleft") {
+				            var prev = $("#prevlink",$.mobile.activePage);
+				            if (prev.length) {
+				                var prevurl = $(prev).attr("href");
+				                console.log(prevurl);
+				                $.mobile.changePage(prevurl);
+				            }
+				        }
+				        if (event.type == "swiperight") {
+				            var next = $("#nextlink",$.mobile.activePage);
+				            if (next.length) {
+				                var nexturl = $(next).attr("href");
+				                console.log(nexturl);
+				                $.mobile.changePage(nexturl);
+				            }
+				        }
+				        event.preventDefault();
+				    });			  
+			});
+					
+	});
 	
 	
 	
@@ -212,7 +215,7 @@
         <!-- Start of first page: welcome page -->
         <div data-role="page" id="welcome">
             <div data-role="header">
-                <h2><img id="diveLogo" src="dive.jpg" />Dive Weather</h2>
+                <h3>ScubaTool</h3>
             </div>
             <br />
             <!-- /header -->                    
