@@ -10,7 +10,8 @@
         <script src="jquery-1.6.4.min.js"></script>
         <script src="jquery.mobile-1.0.js"></script>
         <script>
-       
+        var __stationsCache;
+        
         $(function() { 
 	            $("#search_bt").click(function() {
 	            	
@@ -30,8 +31,8 @@
 	                
 	            });
 	 
-	            $("#resultLog").ajaxError(function(event, request, settings, exception) {	             
-	              $("#resultLog").html("Error Calling: " + settings.url + "<br />HTPP Code: " + request.status);
+	            $("#result").ajaxError(function(event, request, settings, exception) {	             
+	              $("#result").html("Error Calling: " + settings.url + "<br />HTPP Code: " + request.status);
 	            });
 	 
 	            function onSuccess(data)
@@ -48,11 +49,13 @@
 	            	 {
 	            	 	alert('More than one location found. Please be more specific!');
 	            	 }
-	            
-	                $("#resultLog").html("Result: " + data);
 	            }
 	            
-	            function getBuoyInfo(latitude,longitude ) {	            	
+	            function getBuoyInfo(latitude,longitude ) {	    
+	            	
+	            	//data = "<rss><channel><item><title>Station WASD2 - 8594900 - WASHINGTON, DC</title><description><![CDATA[<strong>December 23, 2011 00:00 UTC</strong>]]></description></item><item><title>Station BSLM2 - CHESAPEAKE BAY, MD</title><description>test 2</description></item><item><title>Station 44067 - POTOMAC RIVER, NEAR HWY 301</title><description>test 3</description></item></channel></rss>";
+					//onBuoySuccess(data);
+					 	
 	            	$.ajax({
 	                      type: "GET",
 	                      url: "http://www.ndbc.noaa.gov/rss/ndbc_obs_search.php?radius=100",
@@ -60,17 +63,150 @@
 	                      cache: false,
 	                      dataType: "xml",
 	                      success: onBuoySuccess
-	                    });	            
+	                    });	                            
 	            }
 	            
 	            function onBuoySuccess(data)
 	            {
-	            	
-	            	alert($(data).find('item').length);
+	            	var stationsList = "";
+	            	var parser = new DOMParser();
+	            	__stationsCache = data;
+	            	stations = parser.parseFromString(data,'text/xml');
+	            	var count = 0;
+	            	stations = $(data).find('item').each(function() {
+	            		stationsList += "<li><a href ='#stations-items?station=" + count + "'>" + $(this).find('title').text() + "</a></li>";
+	            		count++;
+	            		});
+	            	$("#resultTitle").html("<h3>Buoy Stations:</h3>");	 
+	            	$("#result").html(stationsList);	            	
+	            	$(".stationsList").listview('refresh');	            	
 	            }
+	            
+	            $("form").submit(
+	            	function() { return false;}
+	            );
 	 
 	        });
-	    </script>
+	        
+	        
+	        
+	        // Load the data for a specific stations, based on
+			// the URL passed in. Generate markup for the items in the
+			// station, inject it into an embedded page, and then make
+			// that page the current active page.
+		function showStation( urlObj, options )
+		{
+			var stationId = urlObj.hash.replace( /.*station=/, "" ),
+			
+				// Get the object that represents the category we
+				// are interested in. Note, that at this point we could
+				// instead fire off an ajax request to fetch the data, but
+				// for the purposes of this sample, it's already in memory.
+				
+				stationItem = $(__stationsCache).find('item')[stationId];
+
+				// The pages we use to display our content are already in
+				// the DOM. The id of the page we are going to write our
+				// content into is specified in the hash before the '?'.
+				pageSelector = urlObj.hash.replace( /\?.*$/, "" );
+			
+			if ( stationItem ) {
+				// Get the page we are going to dump our content into.
+				var $page = $( pageSelector ),
+
+					// Get the header for the page.
+					$header = $page.children( ":jqmData(role=header)" ),
+
+					// Get the content area element for the page.
+					$content = $page.children( ":jqmData(role=content)" ),
+
+					// The markup we are going to inject into the content
+					// area of the page.
+					markup = "<h4>" + $(stationItem).find('title').text() + "</h4>";
+					markup += "<p>" + $(stationItem).find('description').text() + "</p>";					
+					
+					
+					// Find the h1 element in our header and inject the name of
+					// the category into it.
+					$header.find( "h2" ).html( $(stationItem).find('title').text() );
+
+					// Inject the category items markup into the content element.
+					$content.html( markup );
+
+					// Pages are lazily enhanced. We call page() on the page
+					// element to make sure it is always enhanced before we
+					// attempt to enhance the listview markup we just injected.
+					// Subsequent calls to page() are ignored since a page/widget
+					// can only be enhanced once.
+					$page.page();
+
+
+					// We don't want the data-url of the page we just modified
+					// to be the url that shows up in the browser's location field,
+					// so set the dataUrl option to the URL for the category
+					// we just loaded.
+					options.dataUrl = urlObj.href;
+
+					// Now call changePage() and tell it to switch to
+					// the page we just modified.
+					$.mobile.changePage( $page, options );
+			}
+		}
+
+ 
+		// Listen for any attempts to call changePage().
+		$(document).bind( "pagebeforechange", function( e, data ) {			
+			// We only want to handle changePage() calls where the caller is
+			// asking us to load a page by URL.
+			
+			if ( typeof data.toPage === "string" ) {
+				// We are being asked to load a page by URL, but we only
+				// want to handle URLs that request the data for a specific
+				// station.
+				
+				var u = $.mobile.path.parseUrl( data.toPage ),
+					re = /^#stations-item/;
+					console.log( u.hash);
+				if ( u.hash.search(re) !== -1 ) {
+					// We're being asked to display the items for a specific station.
+					// Call our internal method that builds the content for the station
+					// on the fly based on our stationCache data structure.
+					showStation( u, data.options );
+
+					// Make sure to tell changePage() we've handled this call so it doesn't
+					// have to do anything.
+					e.preventDefault();
+				}
+			}
+		});
+	
+		$(document).ready(function() {
+		
+		    $('.stations-items').live('swipeleft swiperight',function(event){
+		        console.log(event.type);
+		        if (event.type == "swipeleft") {
+		            var prev = $("#prevlink",$.mobile.activePage);
+		            if (prev.length) {
+		                var prevurl = $(prev).attr("href");
+		                console.log(prevurl);
+		                $.mobile.changePage(prevurl);
+		            }
+		        }
+		        if (event.type == "swiperight") {
+		            var next = $("#nextlink",$.mobile.activePage);
+		            if (next.length) {
+		                var nexturl = $(next).attr("href");
+		                console.log(nexturl);
+		                $.mobile.changePage(nexturl);
+		            }
+		        }
+		        event.preventDefault();
+		    });
+		});
+	
+	
+	
+	</script>
     </head>
     <body>
         <!-- Start of first page: welcome page -->
@@ -80,38 +216,29 @@
             </div>
             <br />
             <!-- /header -->                    
-            <form action="#" method="get" data-ajax="true" class="ui-body ui-body-a ui-corner-all">
+            <form class="ui-body ui-body-a ui-corner-all">
 				<fieldset>
 					<div data-role="fieldcontain">
 						<label for="q" class="input">Location (e.g. city, zip, etc):</label>
 						<input type="text" name="q" id="q" value=""  />
 					</div>
-					<button type="button" data-theme="b" id="search_bt" name="search_bt" value="submit-value">Submit</button>
+					<button type="button" data-theme="b" id="search_bt" name="search_bt" >Submit</button>
 				</fieldset>
 			</form>
-			<div id="resultLog"></div>
+			<div data-role="content">
+				<h2 id="resultTitle"></h2>
+				<ul  id="result" class="stationsList" data-role="listview">
+				</ul>
+			</div>	
+			<br />				
             <div data-role="footer" data-theme="d">
                 <h4>Navigation</h4>
             </div>
             <!-- /footer -->
-        </div>
-        <!-- /page one -->
-        <!-- Start of second page: #tutorial -->
-        <div data-role="page" id="tutorial" data-theme="a">
-            <div data-role="header">
-                <h1>Tutorial</h1>
-            </div>
-            <!-- /header -->
-            <div data-role="content" data-theme="a">
-                <h2>Tutorial</h2>
-                <p>How to use....</p>
-            </div>
-            <!-- /content -->
-            <div data-role="footer">
-                <h4>Page Footer</h4>
-            </div>
-            <!-- /footer -->
-        </div>
-        <!-- /page tutorial -->        
+        </div>  
+        <div id="stations-items" data-role="page">
+			<div data-role="header"><h2></h2></div>
+			<div data-role="content"></div>
+		</div>	         
     </body>
 </html>
