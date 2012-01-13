@@ -1,4 +1,6 @@
-﻿
+﻿body { background: gray;}
+
+
 .ui-page { background: gray;}
 
 form, #box, #stations-items ui-content {	
