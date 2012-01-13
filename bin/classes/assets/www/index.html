@@ -1,228 +1,261 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html>
-    <head>
-	    <meta charset="utf-8">
-	    <meta name="viewport" content="width=device-width, initial-scale=1"> 
-        <title></title>  
-        <script type="text/javascript" charset="utf-8" src="phonegap-1.3.0.js"></script>
-        <link rel="stylesheet" href="jquery.mobile-1.0.css" />
-        <link rel="stylesheet" href="master.css" /> 
-        <script src="jquery-1.6.4.min.js"></script>
-        <script src="jquery.mobile-1.0.js"></script>
-        <script>
-        var __stationsCache;
-        
-        $(function() { 
-	            $("#search_bt").click(function() {
-	            	
-	                var q = $.trim($("#q").val());
-	 				
-	                if(q.length > 0)
-	                {
-	                    $.ajax({
-	                      type: "GET",
-	                      url: "http://where.yahooapis.com/geocode?appid=dj0yJmk9aDNrOHUzMlU4ZkZiJmQ9WVdrOVkxVnhWelpOTldjbWNHbzlNVEl3TlRrME5EazJNZy0tJnM9Y29uc3VtZXJzZWNyZXQmeD0xZA--",
-	                      data: ({q: q}),
-	                      cache: false,
-	                      dataType: "xml",
-	                      success: onSuccess
-	                    });
-	                }
-	                
-	            });
-	 
-	            $("#result").ajaxError(function(event, request, settings, exception) {	             
-	              $("#result").html("Error Calling: " + settings.url + "<br />HTPP Code: " + request.status);
-	            });
-	 
-	            function onSuccess(data)
-	            {
-	            	
-	            	var latitude = 0;
-	            	var longitude = 0;
-	            	if ($(data).find('Result').length == 1) {
-	            	 	latitude = $(data).find('latitude').text();
-	            	 	longitude = $(data).find('longitude').text();
-	            	 	getBuoyInfo(latitude,longitude);
-	            	 }
-	            	 else
-	            	 {
-	            	 	alert('More than one location found. Please be more specific!');
-	            	 }
-	            }
-	            
-	            function getBuoyInfo(latitude,longitude ) {	    
-	            	
-	            	//data = "<rss><channel><item><title>Station WASD2 - 8594900 - WASHINGTON, DC</title><description><![CDATA[<strong>December 23, 2011 00:00 UTC</strong>]]></description></item><item><title>Station BSLM2 - CHESAPEAKE BAY, MD</title><description>test 2</description></item><item><title>Station 44067 - POTOMAC RIVER, NEAR HWY 301</title><description>test 3</description></item></channel></rss>";
-					//onBuoySuccess(data);
-					 	
-	            	$.ajax({
-	                      type: "GET",
-	                      url: "http://www.ndbc.noaa.gov/rss/ndbc_obs_search.php?radius=100",
-	                      data: ({lat: latitude,lon: longitude}),
-	                      cache: false,
-	                      dataType: "xml",
-	                      success: onBuoySuccess
-	                    });
-	                                          
-	            }
-	            
-	            function onBuoySuccess(data)
-	            {
-	            	var stationsList = "";
-	            	var parser = new DOMParser();
-	            	__stationsCache = data;
-	            	stations = parser.parseFromString(data,'text/xml');
-	            	var count = 0;
-	            	stations = $(data).find('item').each(function() {
-	            		stationsList += "<li><a href ='#stations-items?station=" + count + "'>" + $(this).find('title').text() + "</a></li>";
-	            		count++;
-	            		});
-	            	$("#resultTitle").html("<h5>Buoy Stations:</h5>");	 
-	            	$("#result").html(stationsList);	            	
-	            	$(".stationsList").listview('refresh');	            	
-	            }
-	            
-	            $("form").submit(
-	            	function() { return false;}
-	            );
-	 
-	      
-	        
-	        
-		        
-		        // Load the data for a specific stations, based on
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title></title>
+		<script type="text/javascript" charset="utf-8" src="phonegap-1.3.0.js"></script>
+		<link rel="stylesheet" href="jquery.mobile-1.0.css" />
+		<link rel="stylesheet" href="master.css" />
+		<script src="jquery-1.6.4.min.js"></script>
+		<script src="jquery.mobile-1.0.js"></script>
+		<script>
+			var __stationsCache;
+			var __config = window.localStorage;
+
+			$(function() {
+
+				$("#search_bt").click(function() {
+
+					var q = $.trim($("#q").val());
+
+					if(q.length > 0) {
+						$.ajax({
+							type : "GET",
+							url : "http://where.yahooapis.com/geocode?appid=dj0yJmk9aDNrOHUzMlU4ZkZiJmQ9WVdrOVkxVnhWelpOTldjbWNHbzlNVEl3TlRrME5EazJNZy0tJnM9Y29uc3VtZXJzZWNyZXQmeD0xZA--",
+							data : ( {
+								q : q
+							}),
+							cache : false,
+							dataType : "xml",
+							success : onSuccess
+						});
+					}
+
+				});
+
+				$("#result").ajaxError(function(event, request, settings, exception) {
+					$("#result").html("Error Calling: " + settings.url + "<br />HTPP Code: " + request.status);
+				});
+				function onSuccess(data) {
+
+					var latitude = 0;
+					var longitude = 0;
+					if($(data).find('Result').length == 1) {
+						latitude = $(data).find('latitude').text();
+						longitude = $(data).find('longitude').text();
+						getBuoyInfo(latitude, longitude);
+					} else {
+						alert('More than one location found. Please be more specific!');
+					}
+				}
+
+				function getBuoyInfo(latitude, longitude) {
+					/*data = "<rss><channel><item><title>Station WASD2 - 8594900 - WASHINGTON, DC</title><description><![CDATA[<strong>December 23, 2011 00:00 UTC</strong>]]></description></item><item><title>Station BSLM2 - CHESAPEAKE BAY, MD</title><description>test 2</description></item><item><title>Station 44067 - POTOMAC RIVER, NEAR HWY 301</title><description>test 3</description></item></channel></rss>";
+					onBuoySuccess(data);
+					**/
+					 $.ajax({
+					 type : "GET",
+					 url : "http://www.ndbc.noaa.gov/rss/ndbc_obs_search.php?radius=100",
+					 data : ( {
+					 lat : latitude,
+					 lon : longitude
+					 }),
+					 cache : false,
+					 dataType : "xml",
+					 success : onBuoySuccess
+					 });
+					 
+				}
+
+				function onBuoySuccess(data) {
+					var stationsList = "";
+					var parser = new DOMParser();
+					__stationsCache = data;
+					stations = parser.parseFromString(data, 'text/xml');
+					var count = 0;
+					stations = $(data).find('item').each(function() {
+						stationsList += "<li><a href ='#stations-items?station=" + count + "'>" + $(this).find('title').text() + "</a></li>";
+						count++;
+					});
+					$("#resultTitle").html("<h5>Buoy Stations:</h5>");
+					$("#result").html(stationsList);
+					$(".stationsList").listview('refresh');
+				}
+
+
+				$("form").submit(function() {
+					return false;
+				});
+				// Load the data for a specific stations, based on
 				// the URL passed in. Generate markup for the items in the
 				// station, inject it into an embedded page, and then make
 				// that page the current active page.
-			function showStation( urlObj, options )
-			{
-				var stationId = urlObj.hash.replace( /.*station=/, "" ),
-				
+				function showStation(urlObj, options) {
+					var stationId = urlObj.hash.replace(/.*station=/, ""),
+
 					// Get the object that represents the category we
 					// are interested in. Note, that at this point we could
 					// instead fire off an ajax request to fetch the data, but
 					// for the purposes of this sample, it's already in memory.
-					
+
 					stationItem = $(__stationsCache).find('item')[stationId];
-	
+
 					// The pages we use to display our content are already in
 					// the DOM. The id of the page we are going to write our
 					// content into is specified in the hash before the '?'.
-					pageSelector = urlObj.hash.replace( /\?.*$/, "" );
-				
-				if ( stationItem ) {
-					// Get the page we are going to dump our content into.
-					var $page = $( pageSelector ),
-	
+					pageSelector = urlObj.hash.replace(/\?.*$/, "");
+
+					if(stationItem) {
+						// Get the page we are going to dump our content into.
+						var $page = $(pageSelector),
+
 						// Get the header for the page.
-						$header = $page.children( ":jqmData(role=header)" ),
-	
+						$header = $page.children(":jqmData(role=header)"),
+
 						// Get the content area element for the page.
-						$content = $page.children( ":jqmData(role=content)" ),
-	
+						$content = $page.children(":jqmData(role=content)"),
+
 						// The markup we are going to inject into the content
 						// area of the page.
 						markup = "<h4>" + $(stationItem).find('title').text() + "</h4>";
-						markup += "<p>" + $(stationItem).find('description').text() + "</p>";					
-						
+						markup += "<p>" + $(stationItem).find('description').text() + "</p>";
+
 						// Find the h1 element in our header and inject the name of
 						// the category into it.
-						$header.find( "h2" ).html( $(stationItem).find('title').text() );
-	
+						$header.find("h2").html($(stationItem).find('title').text());
+
 						// Inject the category items markup into the content element.
-						$content.html( markup );
-	
+						$content.html(markup);
+
 						// Pages are lazily enhanced. We call page() on the page
 						// element to make sure it is always enhanced before we
 						// attempt to enhance the listview markup we just injected.
 						// Subsequent calls to page() are ignored since a page/widget
 						// can only be enhanced once.
 						$page.page();
-	
-	
+
 						// We don't want the data-url of the page we just modified
 						// to be the url that shows up in the browser's location field,
 						// so set the dataUrl option to the URL for the category
 						// we just loaded.
 						options.dataUrl = urlObj.href;
-	
+
 						// Now call changePage() and tell it to switch to
 						// the page we just modified.
-						$.mobile.changePage( $page, options );
-				}
-			}
-	
-	 
-			// Listen for any attempts to call changePage().
-			$(document).bind( "pagebeforechange", function( e, data ) {			
-				// We only want to handle changePage() calls where the caller is
-				// asking us to load a page by URL.
-				
-				if ( typeof data.toPage === "string" ) {
-					// We are being asked to load a page by URL, but we only
-					// want to handle URLs that request the data for a specific
-					// station.
-					
-					var u = $.mobile.path.parseUrl( data.toPage ),
-						re = /^#stations-item/;
-						
-					if ( u.hash.search(re) !== -1 ) {
-						// We're being asked to display the items for a specific station.
-						// Call our internal method that builds the content for the station
-						// on the fly based on our stationCache data structure.
-						showStation( u, data.options );
-	
-						// Make sure to tell changePage() we've handled this call so it doesn't
-						// have to do anything.
-						e.preventDefault();
+						$.mobile.changePage($page, options);
 					}
 				}
-			});			
-			
-			    
-			$( '#stations-items' ).live( 'pageinit',function(event){
-				   $('#stations-items').live('swipeleft swiperight',function(event){				   
-				        if (event.type == "swipeleft") {
-				        	history.back();           
-				        }
-				        
-				        event.preventDefault();
-				    });			  
+
+				// Listen for any attempts to call changePage().
+				$(document).bind("pagebeforechange", function(e, data) {
+					// We only want to handle changePage() calls where the caller is
+					// asking us to load a page by URL.
+
+					if( typeof data.toPage === "string") {
+						// We are being asked to load a page by URL, but we only
+						// want to handle URLs that request the data for a specific
+						// station.
+
+						var u = $.mobile.path.parseUrl(data.toPage), re = /^#stations-item/;
+
+						if(u.hash.search(re) !== -1) {
+							// We're being asked to display the items for a specific station.
+							// Call our internal method that builds the content for the station
+							// on the fly based on our stationCache data structure.
+							showStation(u, data.options);
+
+							// Make sure to tell changePage() we've handled this call so it doesn't
+							// have to do anything.
+							e.preventDefault();
+						}
+					}
+				});
+
+				$('#stations-items').live('pageinit', function(event) {
+					$('#stations-items').live('swipeleft swiperight', function(event) {
+						if(event.type == "swipeleft") {
+							$.mobile.changePage("", {
+								reverse : "false",
+								transition : "slide"
+							});
+						}
+
+						event.preventDefault();
+					});
+				});
+
+				$('#preferences').live('pageinit', function(event) {
+					$("#radius").val(getRadius());
+				});
+
+				$("#radius").bind("change click", function(event, ui) {
+					saveRadius($(this).val());
+				});
+				
+				// saveRadius
+				function saveRadius(rad) {
+					__config.setItem("radius", rad);
+				}
+				
+				// saveRadius
+				function getRadius() {
+					return __config.getItem("radius");
+				}
+
+
 			});
-					
-	});
-	
-	
-	
-	</script>
-    </head>
-    <body>
-        <!-- Start of first page: welcome page -->
-        <div data-role="page" id="welcome">
-            <div data-role="header">
-                <h3>ScubaTool</h3>
-            </div>
-            <br />
-            <!-- /header -->                    
-            <form class="ui-body ui-body-a ui-corner-all">
+
+		</script>
+	</head>
+	<body>
+		<!-- Start of first page: welcome page -->
+		<div data-role="page" id="welcome">
+			<div data-role="header">
+				<h3>ScubaTool</h3>
+			</div>
+			<br />
+			<!-- /header -->
+			<form class="ui-body ui-body-a ui-corner-all">
 				<fieldset>
 					<div data-role="fieldcontain">
-						<label for="q" class="input">Location (e.g. city, zip, etc):</label>
+						<label for="q" class="input">Location (e.g. zip ):</label>
 						<input type="text" name="q" id="q" value=""  />
 					</div>
-					<button type="button" data-theme="b" id="search_bt" name="search_bt" >Submit</button>
+					<button type="button" data-theme="b" id="search_bt" name="search_bt" >
+						Submit
+					</button>
 				</fieldset>
-			</form>		
-			<br />	
-	
-			<div id="mainBox" data-role="content">		
+			</form>
+			<br />
+			<div id="box" data-role="content">
 				<ul  id="result" class="stationsList" data-role="listview"></ul>
 			</div>
-        </div>  
-        <div id="stations-items" data-role="page">
-			<div data-role="header"><h2></h2></div>
+			<div id="footer" data-role="footer" class="ui-bar" data-position="fixed">
+				<a href="index.html" data-role="button" data-icon="home">Home</a>
+				<a href="#preferences" data-rel="dialog" data-transition="slideup"  data-role="button" data-icon="gear">Preferences</a>
+				<a href="index.html" data-role="button" data-icon="info">About</a>
+			</div>
+		</div>
+		<div id="stations-items" data-role="page">
+			<div data-role="header">
+				<h2></h2>
+			</div>
 			<div data-role="content"></div>
-		</div>	         
-    </body>
+		</div>
+		<div id="preferences" data-role="page">
+			<div data-role="header" data-theme="d">
+				<h1>Dialog</h1>
+			</div>
+			<div data-role="content" data-theme="c">
+				<h2>Preferences</h2>
+				<form class="ui-body ui-body-a ui-corner-all">
+					<div data-role="fieldcontain">
+						<label for="radius">Radius:</label>
+						<input type="number" name="radius" id="radius" value="20" max="100"/>
+					</div>
+				</form>
+			</div>
+		</div>
+	</body>
 </html>

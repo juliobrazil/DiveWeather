@@ -1,13 +1,10 @@
-﻿#diveLogo 
-{
-   vertical-align:middle;
-}
-
+﻿
 .ui-page { background: gray;}
 
-form, #mainBox, #stations-items ui-content {	
+form, #box, #stations-items ui-content {	
 	margin-left: auto;
 	margin-right: auto;
-	width: 95%;
+	width: 85%;
 }
+
 
