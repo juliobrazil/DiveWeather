@@ -9,4 +9,10 @@ form, #box, #stations-items ui-content {
 	width: 85%;
 }
 
+#preferences-form {
+	height: 230px;	
+}
+
+
+
 

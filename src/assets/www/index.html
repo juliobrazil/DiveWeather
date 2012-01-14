@@ -9,12 +9,28 @@
 		<link rel="stylesheet" href="master.css" />
 		<script src="jquery-1.6.4.min.js"></script>
 		<script src="jquery.mobile-1.0.js"></script>
+		<script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyAvc3-RAsDMqSxgh0os_6S4DsuJdSSdGwo&sensor=true"></script>
 		<script>
 			var __stationsCache;
-			var __config = window.localStorage;
-
+			var __config = window.localStorage;		
+		
 			$(function() {
+				
+				// default configuration
+				if (__config.getItem("radius") == null) {
+					__config.setItem("radius","20");					
+				}
+				
+				
+				if (__config.getItem("zoom") == null) {
+					__config.setItem("zoom","15");					
+				}
+				
+				if (__config.getItem("maxBuoy") == null) {
+					__config.setItem("maxBuoy","10");					
+				}
 
+				// search button
 				$("#search_bt").click(function() {
 
 					var q = $.trim($("#q").val());
@@ -33,10 +49,13 @@
 					}
 
 				});
-
+				
+				// search result error
 				$("#result").ajaxError(function(event, request, settings, exception) {
 					$("#result").html("Error Calling: " + settings.url + "<br />HTPP Code: " + request.status);
 				});
+				
+				// search Success
 				function onSuccess(data) {
 
 					var latitude = 0;
@@ -49,14 +68,20 @@
 						alert('More than one location found. Please be more specific!');
 					}
 				}
-
+				
+				// get buoy information
 				function getBuoyInfo(latitude, longitude) {
-					/*data = "<rss><channel><item><title>Station WASD2 - 8594900 - WASHINGTON, DC</title><description><![CDATA[<strong>December 23, 2011 00:00 UTC</strong>]]></description></item><item><title>Station BSLM2 - CHESAPEAKE BAY, MD</title><description>test 2</description></item><item><title>Station 44067 - POTOMAC RIVER, NEAR HWY 301</title><description>test 3</description></item></channel></rss>";
+					
+					//test data
+					/* var data = "<rss><channel><item><title>Station WASD2 - 8594900 - WASHINGTON, DC</title><description><![CDATA[<strong>December 23, 2011 00:00 UTC</strong>]]></description></item><item><title>Station BSLM2 - CHESAPEAKE BAY, MD</title><description>test 2</description></item><item><title>Station 44067 - POTOMAC RIVER, NEAR HWY 301</title><description>test 3</description></item></channel></rss>";
 					onBuoySuccess(data);
 					**/
+					
+					 var url = "http://www.ndbc.noaa.gov/rss/ndbc_obs_search.php?radius=" + __config.getItem("radius");
+					 
 					 $.ajax({
 					 type : "GET",
-					 url : "http://www.ndbc.noaa.gov/rss/ndbc_obs_search.php?radius=100",
+					 url : url,
 					 data : ( {
 					 lat : latitude,
 					 lon : longitude
@@ -67,44 +92,42 @@
 					 });
 					 
 				}
-
+				
+				// buoy Success
 				function onBuoySuccess(data) {
-					var stationsList = "";
-					var parser = new DOMParser();
 					__stationsCache = data;
-					stations = parser.parseFromString(data, 'text/xml');
+					var stationsList = "";
+					var parser = new DOMParser();					
+					var stations = parser.parseFromString(__stationsCache, 'text/xml');
 					var count = 0;
-					stations = $(data).find('item').each(function() {
+					stations = $(__stationsCache).find('item').each(function() {
 						stationsList += "<li><a href ='#stations-items?station=" + count + "'>" + $(this).find('title').text() + "</a></li>";
-						count++;
+						count++;		
+						//stop when hits the max in preference				
+						return (count < __config.getItem("maxBuoy"));
 					});
 					$("#resultTitle").html("<h5>Buoy Stations:</h5>");
 					$("#result").html(stationsList);
 					$(".stationsList").listview('refresh');
 				}
 
-
+				// block form submit on key pressed (Enter)
 				$("form").submit(function() {
 					return false;
 				});
+				
 				// Load the data for a specific stations, based on
 				// the URL passed in. Generate markup for the items in the
 				// station, inject it into an embedded page, and then make
 				// that page the current active page.
 				function showStation(urlObj, options) {
 					var stationId = urlObj.hash.replace(/.*station=/, ""),
-
-					// Get the object that represents the category we
-					// are interested in. Note, that at this point we could
-					// instead fire off an ajax request to fetch the data, but
-					// for the purposes of this sample, it's already in memory.
-
-					stationItem = $(__stationsCache).find('item')[stationId];
+						stationItem = $(__stationsCache).find('item')[stationId];
 
 					// The pages we use to display our content are already in
 					// the DOM. The id of the page we are going to write our
 					// content into is specified in the hash before the '?'.
-					pageSelector = urlObj.hash.replace(/\?.*$/, "");
+					var pageSelector = urlObj.hash.replace(/\?.*$/, "");
 
 					if(stationItem) {
 						// Get the page we are going to dump our content into.
@@ -118,9 +141,10 @@
 
 						// The markup we are going to inject into the content
 						// area of the page.
-						markup = "<h4>" + $(stationItem).find('title').text() + "</h4>";
-						markup += "<p>" + $(stationItem).find('description').text() + "</p>";
-
+						markup = "<h4 id='buoyName'>" + $(stationItem).find('title').text() + "</h4>";
+						markup += "<p id='desc'>" + $(stationItem).find('description').text() + "</p>";
+						markup += "<div id='map_canvas' style='height:350px';></div>";
+						markup += "<a href='#'  data-inline='true' data-rel='back' data-role='button' data-icon='back' data-theme='a'>Back</a>";
 						// Find the h1 element in our header and inject the name of
 						// the category into it.
 						$header.find("h2").html($(stationItem).find('title').text());
@@ -145,7 +169,30 @@
 						// the page we just modified.
 						$.mobile.changePage($page, options);
 					}
-				}
+				};
+				
+				// load map in dynamic page
+				function loadMap() {
+					var reg = /([0-9.]*)(N|S) ([0-9.]*)(E|W)/gi;
+					var str = $("#desc").text();
+					var buoyName = $("#buoyName").text();					
+					var latLng =  reg.exec(str);
+					var lat = latLng[1]* (latLng[2] == "N" ? 1 : -1);
+					var lng = latLng[3]* (latLng[4] == "E" ? 1 : -1);
+					var zoomSize = Number(__config.getItem("zoom"));
+					var coords = new google.maps.LatLng(lat, lng);					
+					var options = {zoom: zoomSize ,center: coords, mapTypeId: google.maps.MapTypeId.ROADMAP};
+  					var map = new google.maps.Map(document.getElementById("map_canvas"), options);
+  					
+  					
+  					var marker = new google.maps.Marker({
+					      position: coords,
+					      map: map,
+					      title: buoyName
+					  });
+									
+				};
+
 
 				// Listen for any attempts to call changePage().
 				$(document).bind("pagebeforechange", function(e, data) {
@@ -158,21 +205,24 @@
 						// station.
 
 						var u = $.mobile.path.parseUrl(data.toPage), re = /^#stations-item/;
-
+											
 						if(u.hash.search(re) !== -1) {
 							// We're being asked to display the items for a specific station.
 							// Call our internal method that builds the content for the station
 							// on the fly based on our stationCache data structure.
-							showStation(u, data.options);
-
+							  $('#Div1').page();													
+							showStation(u, data.options);												
+							loadMap();
 							// Make sure to tell changePage() we've handled this call so it doesn't
 							// have to do anything.
 							e.preventDefault();
 						}
 					}
 				});
-
-				$('#stations-items').live('pageinit', function(event) {
+				
+				// swipe commands - not need anymore
+				
+				/*$('#stations-items').live('pageinit', function(event) {
 					$('#stations-items').live('swipeleft swiperight', function(event) {
 						if(event.type == "swipeleft") {
 							$.mobile.changePage("", {
@@ -184,25 +234,26 @@
 						event.preventDefault();
 					});
 				});
-
+				*/
+				
+				// get/set preferences 
 				$('#preferences').live('pageinit', function(event) {
-					$("#radius").val(getRadius());
+					$("#radius").val(__config.getItem("radius"));
+					$("#mapZoom").val(__config.getItem("zoom"));
+					$("#maxBuoy").val(__config.getItem("maxBuoy"));
 				});
 
 				$("#radius").bind("change click", function(event, ui) {
-					saveRadius($(this).val());
+					__config.setItem("radius",$(this).val());
 				});
 				
-				// saveRadius
-				function saveRadius(rad) {
-					__config.setItem("radius", rad);
-				}
+				$("#mapZoom").bind("change click", function(event, ui) {
+					__config.setItem("zoom",$(this).val());
+				});
 				
-				// saveRadius
-				function getRadius() {
-					return __config.getItem("radius");
-				}
-
+				$("#maxBuoy").bind("change click", function(event, ui) {
+					__config.setItem("maxBuoy",$(this).val());
+				});	
 
 			});
 
@@ -219,10 +270,10 @@
 			<form class="ui-body ui-body-a ui-corner-all">
 				<fieldset>
 					<div data-role="fieldcontain">
-						<label for="q" class="input">Location (e.g. zip ):</label>
-						<input type="text" name="q" id="q" value=""  />
+						<label for="q" class="input">Location (e.g. places):</label>
+						<input type="text" name="q" id="q" value=""/>
 					</div>
-					<button type="button" data-theme="b" id="search_bt" name="search_bt" >
+					<button type="button" data-theme="b" id="search_bt" name="search_bt"  data-inline="true">
 						Submit
 					</button>
 				</fieldset>
@@ -232,29 +283,67 @@
 				<ul  id="result" class="stationsList" data-role="listview"></ul>
 			</div>
 			<div id="footer" data-role="footer" class="ui-bar" data-position="fixed">
-				<a href="index.html" data-role="button" data-icon="home">Home</a>
+				<a href="index.html" data-ajax="false" data-role="button" data-icon="home">Home</a>
 				<a href="#preferences" data-rel="dialog" data-transition="slideup"  data-role="button" data-icon="gear">Preferences</a>
-				<a href="index.html" data-role="button" data-icon="info">About</a>
+				<a href="#info" data-role="button" data-icon="info" data-rel="dialog" data-transition="slideup">About</a>
 			</div>
 		</div>
 		<div id="stations-items" data-role="page">
 			<div data-role="header">
 				<h2></h2>
 			</div>
-			<div data-role="content"></div>
+			<div id="stations-items-content" data-role="content"></div>
 		</div>
+		
 		<div id="preferences" data-role="page">
 			<div data-role="header" data-theme="d">
 				<h1>Dialog</h1>
 			</div>
-			<div data-role="content" data-theme="c">
+			<div id="preferences-content" data-role="content" data-theme="c">
 				<h2>Preferences</h2>
-				<form class="ui-body ui-body-a ui-corner-all">
+				<form id="preferences-form" class="ui-body ui-body-a ui-corner-all">
 					<div data-role="fieldcontain">
-						<label for="radius">Radius:</label>
-						<input type="number" name="radius" id="radius" value="20" max="100"/>
-					</div>
+						<label for="radius">Search Radius:</label>
+						<input type="number" name="radius" id="radius" value="" max="100"/>
+						
+						<label for="mapZoom">Map Zoom:</label>
+						<input type="number" name="mapZoom" id="mapZoom" value="" max="20"/>
+						
+						<label for="maxBuoy">Max Buoy(s):</label>
+						<input type="number" name="maxBuoy" id="maxBuoy" value="" max="20"/>
+						<p>
+							<a href="#"  data-inline="true" data-rel="back" data-role="button" data-icon="back" data-theme="a">Back</a>							
+						</p>							
+					</div>				
 				</form>
+			</div>
+		</div>
+		
+		<div id="info" data-role="page">
+			<div data-role="header" data-theme="d">
+				<h1>Dialog</h1>
+			</div>
+			<div id="info-content" data-role="content" data-theme="c">
+				<h2>About</h2>
+				<p>
+					ScubaTool provides information (such as wind speed, water and air temperatures, etc.) from buoys (and maybe ships) that may be close to your dive destination.
+					The buoy's data can give you a heads up on what gear you should bring and what you should expect in terms of weather on specific dive site.
+					<br/>
+					Although you can find buoys globally, certain areas may not be covered or reachable.
+				</p>
+				<p>
+					Roadmap:
+						<ul>
+							<li>List (and Map Markers) of Dive Shops</li>	
+							<li>List (and Map Markers) of Dive Sites, Wreck close to the desired location.</li>															
+						</ul>
+				</p>
+				<p>
+					Although this software is free, you can support by click in the ads :).
+				</p>
+				<p>
+					<a href="#"  data-inline="true" data-rel="back" data-role="button" data-icon="back" data-theme="a">Back</a>							
+				</p>
 			</div>
 		</div>
 	</body>
