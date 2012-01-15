@@ -13,6 +13,21 @@ form, #box, #stations-items ui-content {
 	height: 230px;	
 }
 
+#map_canvas {
+	width: 80%;
+	margin-left: 10%;	
+	border-style:groove;
+	border-width: 6px;
+	text-align: center;
+	margin-bottom: 5%;
+}
 
+#headerTitle {
+	text-shadow: 1px 1px #C0C0C0;
+}
 
-
+#logo {
+	width: 30px;
+	padding-right: 10px;
+	vertical-align: middle;	
+}

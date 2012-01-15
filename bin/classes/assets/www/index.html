@@ -11,12 +11,16 @@
 		<script src="jquery.mobile-1.0.js"></script>
 		<script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyAvc3-RAsDMqSxgh0os_6S4DsuJdSSdGwo&sensor=true"></script>
 		<script>
+			// holds up the stations loaded from the feed. They will be reused to create subpages.
 			var __stationsCache;
-			var __config = window.localStorage;		
+			// saves user preferences data
+			var __config = window.localStorage;	
 		
 			$(function() {
+				// get navigation
+				navigator.geolocation.getCurrentPosition(onGeoSuccess);
 				
-				// default configuration
+				// default configuration - first time application is executed.
 				if (__config.getItem("radius") == null) {
 					__config.setItem("radius","20");					
 				}
@@ -101,7 +105,7 @@
 					var stations = parser.parseFromString(__stationsCache, 'text/xml');
 					var count = 0;
 					stations = $(__stationsCache).find('item').each(function() {
-						stationsList += "<li><a href ='#stations-items?station=" + count + "'>" + $(this).find('title').text() + "</a></li>";
+						stationsList += "<li><a data-ajax='false' href ='#stations-items?station=" + count + "'>" + $(this).find('title').text() + "</a></li>";
 						count++;		
 						//stop when hits the max in preference				
 						return (count < __config.getItem("maxBuoy"));
@@ -130,7 +134,7 @@
 					var pageSelector = urlObj.hash.replace(/\?.*$/, "");
 
 					if(stationItem) {
-						// Get the page we are going to dump our content into.
+						// Get the page we are going to dump our content into.										
 						var $page = $(pageSelector),
 
 						// Get the header for the page.
@@ -156,8 +160,9 @@
 						// element to make sure it is always enhanced before we
 						// attempt to enhance the listview markup we just injected.
 						// Subsequent calls to page() are ignored since a page/widget
-						// can only be enhanced once.
+						// can only be enhanced once.						
 						$page.page();
+						
 
 						// We don't want the data-url of the page we just modified
 						// to be the url that shows up in the browser's location field,
@@ -167,6 +172,7 @@
 
 						// Now call changePage() and tell it to switch to
 						// the page we just modified.
+						//hide the page loader 						
 						$.mobile.changePage($page, options);
 					}
 				};
@@ -210,9 +216,9 @@
 							// We're being asked to display the items for a specific station.
 							// Call our internal method that builds the content for the station
 							// on the fly based on our stationCache data structure.
-							  $('#Div1').page();													
-							showStation(u, data.options);												
-							loadMap();
+							  $('#Div1').page();																			
+							showStation(u, data.options);																			
+							loadMap();							
 							// Make sure to tell changePage() we've handled this call so it doesn't
 							// have to do anything.
 							e.preventDefault();
@@ -254,8 +260,15 @@
 				$("#maxBuoy").bind("change click", function(event, ui) {
 					__config.setItem("maxBuoy",$(this).val());
 				});	
+				
+				
+				function onGeoSuccess(position) {
+					getBuoyInfo(position.coords.latitude, position.coords.longitude);	
+				};				
+						
 
-			});
+			});			
+					
 
 		</script>
 	</head>
@@ -263,7 +276,7 @@
 		<!-- Start of first page: welcome page -->
 		<div data-role="page" id="welcome">
 			<div data-role="header">
-				<h3>ScubaTool</h3>
+				<h1 id="headerTitle"><img id="logo" src="images/dive.jpg" />ScubaTool</h1>
 			</div>
 			<br />
 			<!-- /header -->
@@ -278,8 +291,9 @@
 					</button>
 				</fieldset>
 			</form>
-			<br />
+			<br />					
 			<div id="box" data-role="content">
+				<div id="loading"></div>	
 				<ul  id="result" class="stationsList" data-role="listview"></ul>
 			</div>
 			<div id="footer" data-role="footer" class="ui-bar" data-position="fixed">
@@ -304,13 +318,13 @@
 				<form id="preferences-form" class="ui-body ui-body-a ui-corner-all">
 					<div data-role="fieldcontain">
 						<label for="radius">Search Radius:</label>
-						<input type="number" name="radius" id="radius" value="" max="100"/>
+						<input type="number" name="radius" id="radius" value="" max="500"/>
 						
 						<label for="mapZoom">Map Zoom:</label>
 						<input type="number" name="mapZoom" id="mapZoom" value="" max="20"/>
 						
 						<label for="maxBuoy">Max Buoy(s):</label>
-						<input type="number" name="maxBuoy" id="maxBuoy" value="" max="20"/>
+						<input type="number" name="maxBuoy" id="maxBuoy" value="" max="30"/>
 						<p>
 							<a href="#"  data-inline="true" data-rel="back" data-role="button" data-icon="back" data-theme="a">Back</a>							
 						</p>							
@@ -324,20 +338,31 @@
 				<h1>Dialog</h1>
 			</div>
 			<div id="info-content" data-role="content" data-theme="c">
-				<h2>About</h2>
+				<h2>About ScubaTool</h2>
 				<p>
 					ScubaTool provides information (such as wind speed, water and air temperatures, etc.) from buoys (and maybe ships) that may be close to your dive destination.
 					The buoy's data can give you a heads up on what gear you should bring and what you should expect in terms of weather on specific dive site.
 					<br/>
 					Although you can find buoys globally, certain areas may not be covered or reachable.
 				</p>
-				<p>
-					Roadmap:
+				<h3>Roadmap</h3>			
+				<p>					
 						<ul>
 							<li>List (and Map Markers) of Dive Shops</li>	
-							<li>List (and Map Markers) of Dive Sites, Wreck close to the desired location.</li>															
+							<li>List (and Map Markers) of Dive Sites, Wreck close to the desired location.</li>
+							<li>Dive Table</li>	
+							<li>Tide Level</li>																
 						</ul>
 				</p>
+				<h3>Search Tips</h3>
+				<p>
+					You may by zipcode, city, location or places, etc.
+					e.g.
+						<ul>
+							<li>20577 (zip)</li>
+							<li>Cozumel, Mexico (city)</li>							
+						</ul>
+				<hr />
 				<p>
 					Although this software is free, you can support by click in the ads :).
 				</p>
